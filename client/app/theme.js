@@ -1,6 +1,7 @@
 'use client'
 import {ThemeProvider} from '@mui/material/styles'
 import {createTheme} from '@mui/material/styles'
+import {AnimatePresence} from 'framer-motion'
 
 const themeOptions = (isDarkMode) =>
   createTheme({
@@ -33,5 +34,9 @@ const themeOptions = (isDarkMode) =>
 
 export default function CustomTheme({children}) {
   // Set 'isDarkMode' to 'false' for light theme by default
-  return <ThemeProvider theme={themeOptions(false)}>{children}</ThemeProvider>
+  return (
+    <ThemeProvider theme={themeOptions(false)}>
+      <AnimatePresence>{children}</AnimatePresence>
+    </ThemeProvider>
+  )
 }

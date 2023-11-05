@@ -5,6 +5,8 @@ import Image from 'next/image'
 import {motion} from 'framer-motion'
 import {useAuth} from '@clerk/nextjs'
 
+const MotionBox = motion(Box)
+
 export default function Page() {
   const {isLoaded} = useAuth()
   const imageAnimation = {
@@ -18,11 +20,28 @@ export default function Page() {
     },
   }
   return (
-    <Box
+    <MotionBox
+      key="signup"
       width="100vw"
       height="100vh"
       display="flex"
       flexDirection="row"
+      initial={{
+        opacity: 0,
+        background:
+          'linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(158,214,182,1) 50%, rgba(255,255,255,1) 100%)', // White to middle color to white
+      }}
+      animate={{
+        opacity: 1,
+        background:
+          'linear-gradient(90deg, rgba(144,238,144,1) 0%, rgba(255,255,255,1) 100%)', // Green to white
+      }}
+      exit={{
+        opacity: 0,
+        background:
+          'linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(158,214,182,1) 50%, rgba(255,255,255,1) 100%)', // White to middle color to white
+      }}
+      transition={{duration: 1}}
       justifyContent="center"
       alignItems="center"
       sx={{
@@ -30,10 +49,14 @@ export default function Page() {
           'linear-gradient(90deg, rgba(144,238,144,1) 0%, rgba(255,255,255,1) 100%)',
       }}
     >
-      {isLoaded ? (
+      {!isLoaded ? (
         <CircularProgress />
       ) : (
-        <Box
+        <MotionBox
+          initial={{opacity: 0}}
+          animate={{opacity: 1}}
+          exit={{opacity: 0}}
+          transition={{duration: 0.5}}
           width="70%"
           height="80%"
           padding={4}
@@ -45,12 +68,12 @@ export default function Page() {
         >
           <Box height="80%" width="50%">
             <motion.div animate={imageAnimation}>
-              <Image src="/joy.png" width={400} height={400} />
+              <Image src="/joy.png" width={400} height={400} alt="Joy" />
             </motion.div>
           </Box>
           <SignUp />
-        </Box>
+        </MotionBox>
       )}
-    </Box>
+    </MotionBox>
   )
 }
