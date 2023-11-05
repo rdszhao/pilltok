@@ -141,13 +141,6 @@ def create_schedule(medications: list, routines: dict) -> tuple:
     else:
         print('no solution found for the given constraints.')
 
-def flatten_records(adherence_record: dict) -> list:
-    flat_record = {}
-    for _, times in adherence_record.items():
-        for time, adherence in times.items():
-            flat_record[time] = adherence
-    return flat_record
-
 def timegen(time: int, adherence: int, mean: int, std: int) -> int:
     mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
     std_dev = std if (adherence == -1 or adherence == 1) else 0
