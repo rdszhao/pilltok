@@ -17,57 +17,66 @@ except:
 def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
-def parse_periods(time_period: str, routines: dict, nlp=nlp) -> int:
+import re
+from spacy.matcher import Matcher
+import numpy as np
+
+def parse_periods(time_period: str, routines: dict, nlp) -> list:
     doc = nlp(time_period)
     matcher = Matcher(nlp.vocab)
 
-    # pattern for "every x hours"
-    pattern = [
+    # define the pattern for "every x hours"
+    pattern_hours = [
         {'LOWER': 'every'},
         {'IS_DIGIT': True, 'OP': '+'},
         {'LOWER': 'hours'}
     ]
-    matcher.add('EVERY_X_HOURS', [pattern])
+    matcher.add('EVERY_X_HOURS', [pattern_hours])
 
-    # pattern for "x times a day"
-    pattern = [
+    # define the pattern for "x times a day"
+    pattern_times_a_day = [
         {'IS_DIGIT': True, 'OP': '+'},
         {'LOWER': 'times'},
         {'LOWER': 'a'},
         {'LOWER': 'day'}
     ]
-    matcher.add('X_TIMES_A_DAY', [pattern])
+    matcher.add('X_TIMES_A_DAY', [pattern_times_a_day])
 
     matches = matcher(doc)
     dosage_times = []
 
-    # handle specific qualitative times like "before bed" or "in the morning"
-    morning_dose_time = routines['wakeup_time'] + 30
-    lower_time_period = time_period.lower()
-    if 'bed' in lower_time_period:
-        dosage_times.append(routines['bedtime'] - 30)  # assuming 30 mins before bed
-    if 'morning' in lower_time_period:
-        dosage_times.append(morning_dose_time)  # assuming 30 mins after waking up
+    # initialize the start time to be just after wake up time plus a buffer (e.g., 30 minutes)
+    start_time = routines['wakeup_time'] + 30
+    # initialize the end time to be just before bedtime minus a buffer (e.g., 30 minutes)
+    end_time = routines['bedtime'] - 30
 
     for match_id, start, end in matches:
-            string_id = nlp.vocab.strings[match_id]
-            span = doc[start:end]
-            if string_id == 'EVERY_X_HOURS':
-            # if there is a morning dose, align "every x hours" to start at that time
-                if morning_dose_time is not None:
-                    hours = int(span[1].text)
-                    interval_count = (routines['bedtime'] - morning_dose_time) // (hours * 60)
-                    intervals = [morning_dose_time + i * (hours * 60) for i in range(interval_count + 1)]
-                    dosage_times.extend(intervals)
-            elif string_id == 'X_TIMES_A_DAY':
-                times = int(span[0].text)
-                if morning_dose_time is not None:
-                    intervals = [morning_dose_time + i * (1440 // times) for i in range(times)]
-                    dosage_times.extend(intervals)
+        string_id = nlp.vocab.strings[match_id]
+        span = doc[start:end]
+        if string_id == 'EVERY_X_HOURS':
+            hours = int(span[1].text)
+            intervals = np.arange(start_time, end_time, hours * 60)
+            dosage_times.extend(intervals.tolist())
+        elif string_id == 'X_TIMES_A_DAY':
+            times = int(span[0].text)
+            # calculate the interval in minutes between each dose
+            interval = (end_time - start_time) // (times - 1)
+            intervals = [start_time + i * interval for i in range(times)]
+            dosage_times.extend(intervals)
 
+    # handle qualitative times like "before bed" or "in the morning"
+    lower_time_period = time_period.lower()
+    if 'bed' in lower_time_period:
+        bedtime_dose = routines['bedtime'] - 30  # assuming 30 mins before bed
+        if bedtime_dose >= start_time:  # ensure it fits within the routine times
+            dosage_times.append(bedtime_dose)
+    if 'morning' in lower_time_period:
+        morning_dose = start_time  # use the start_time, which is wakeup time plus buffer
+        dosage_times.append(morning_dose)
+
+    # convert entity times to the number of minutes since midnight
     for ent in doc.ents:
         if ent.label_ == 'TIME':
-            # convert ent to a number of minutes since midnight
             time_str = ent.text.lower().replace('.', '')
             is_pm = 'pm' in time_str
             nums = [int(num) for num in re.findall(r'\d+', time_str)]
@@ -76,26 +85,24 @@ def parse_periods(time_period: str, routines: dict, nlp=nlp) -> int:
             if hour < 12 and is_pm:
                 hour += 12
             time_in_mins = hour * 60 + minute
-            dosage_times.append(time_in_mins)
+            # only include the time if it's within the wakeup and bedtime bounds
+            if routines['wakeup_time'] <= time_in_mins < routines['bedtime']:
+                dosage_times.append(time_in_mins)
 
-    # deduplicate and sort times
-    dosage_times = sorted(set(dosage_times))
+    # Deduplicate and sort times, making sure they are within the wakeup and bedtime
+    valid_dosage_times = sorted(set([t for t in dosage_times if routines['wakeup_time'] <= t < routines['bedtime']]))
 
-    return dosage_times
+    return valid_dosage_times
+
 
 def split_medications_and_interactions(medications_list):
     new_medications = []
     interactions = {}
 
     for med in medications_list:
-        # Extract and store the interaction details separately
         interaction_details = med.pop('interactions', {})
         interactions[med['name']] = interaction_details
-
-        # Replace the interactions with just the list of medication names
         med['interactions'] = list(interaction_details.keys())
-
-        # Append the modified medication dictionary to the new list
         new_medications.append(med)
 
     return new_medications, interactions
@@ -157,25 +164,37 @@ def create_schedule(medications: list, routines: dict) -> str:
 
         for warning in warnings:
             print(warning)
-            outputs = json.dumps({
-                'schedule': return_schedule,
-                'warning_keys': interaction_warnings,
-                'warnings_dict': med_warnings,
-                'medications_dict': medications
-            }, indent=True)
-            return outputs
+        warning_keys = []
+        for interaction in interaction_warnings:
+            for key, val in interaction.items():
+                if {key: val} not in warning_keys:
+                    warning_keys.append({key: val})
+        outputs = json.dumps({
+            'schedule': return_schedule,
+            'warning_keys': warning_keys,
+            'warnings_dict': med_warnings,
+            'medications_dict': medications
+        }, indent=True)
+        return outputs
+        outputs = json.dumps({
+            'schedule': return_schedule,
+            'warning_keys': list(set(interaction_warnings)),
+            'warnings_dict': med_warnings,
+            'medications_dict': medications
+        }, indent=True)
+        return outputs
     else:
         print('no solution found for the given constraints.')
 
 def get_interaction_warning(interaction_pair, warnings_dict):
     drug1, drug2 = next(iter(interaction_pair.items()))
-    return warnings_dict.get(drug1, {}).get(drug2, "No warning found.")
+    return warnings_dict.get(drug1, {}).get(drug2, "no warning found.")
 
 def timesample(time: int, adherence: int, mean: int, std: int) -> int:
     mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
     std_dev = std if (adherence == -1 or adherence == 1) else 0
     new_time = int(np.random.normal(time + mean_shift, std_dev))
-    new_time = (new_time // 15) * 15 + (15 if new_time % 15 > 7 else 0)
+    new_time = (new_time // 10) * 10 + (10 if new_time % 10 > 7 else 0)
     new_time = max(0, min(new_time, 1440 - 15))
     return new_time
 
@@ -210,18 +229,17 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 # medications = [
 #     {'name': 'ATENOLOL',
 #     'dosage': '100 mg',
-#     'time_period': 'TAKE 1 TABLET BY MOUTH BEFORE BEDTIME',
+#     'time_period': 'TAKE 3 TIMES A DAY',
 #     'interactions': {'ALPRAZOLAM': 'Alprazolam may decrease the excretion rate of Amoxicillin which could result in a higher serum level.',
 #                     'AMOXICILLIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}},
 #     {'name': 'AMOXICILLIN',
 #     'dosage': '500 MG',
-#     'time_period': 'TAKE 4 CAPSULE MOUTH 1 HOUR BEFORE BEDTIME',
-#     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}}
-# ]
-
+#     # 'time_period': 'TAKE 4 TIMES A DAY',
+#     'time_period': 'TAKE 4 TIMES A DAY',
+#     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}} ]
 # routines = {
 #     'wakeup_time': 7 * 60,  # 7:00 am
-#     'bedtime': 22 * 60,     # 10:00 pm
+#     'bedtime': 24 * 60,     # 10:00 pm
 #     'meals': {
 #         'breakfast': 8 * 60,
 #         'lunch': 12 * 60,
