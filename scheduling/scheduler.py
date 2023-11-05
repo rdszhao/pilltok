@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import spacy
 from spacy.matcher import Matcher
 from ortools.sat.python import cp_model
@@ -10,6 +11,9 @@ except:
     from spacy.cli import download
     download('en_core_web_sm')
     nlp = spacy.load('en_core_web_sm')
+
+def timestr(time):
+    return f"{time // 60:02d}:{time % 60:02d}"
 
 def parse_periods(time_period, routines, nlp=nlp):
     doc = nlp(time_period)
@@ -77,7 +81,7 @@ def parse_periods(time_period, routines, nlp=nlp):
 
     return dosage_times
 
-def create_schedule(medications, routines):
+def initializa(medications, routines):
     model = cp_model.CpModel()
     medications_dict = {med['name']: med for med in medications}
 
@@ -125,18 +129,46 @@ def create_schedule(medications, routines):
         for med_name, med_vars in schedule_vars.items():
             for dose_num, var in enumerate(med_vars):
                 med_time = solver.Value(var)
-                time_string = f"{med_time // 60:02d}:{med_time % 60:02d}"
+                time_string = timestr(med_time)
                 print(f"{med_name} dose {dose_num + 1} should be taken at {time_string}")
-                return_schedule[med_name].append(time_string)
+                return_schedule[med_name].append(med_time)
 
         for warning in warnings:
             print(warning)
         return return_schedule, interaction_warnings
     else:
-        print('No solution found for the given constraints.')
+        print('no solution found for the given constraints.')
 
-# sample
+def flatten_records(adherence_record):
+    flat_record = {}
+    for _, times in adherence_record.items():
+        for time, adherence in times.items():
+            flat_record[time] = adherence
+    return flat_record
 
+def timegen(time, adherence, mean, std):
+    mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
+    std_dev = std if (adherence == -1 or adherence == 1) else 0
+    new_time = int(np.random.normal(time + mean_shift, std_dev))
+    new_time = (new_time // 15) * 15 + (15 if new_time % 15 > 7 else 0)
+    new_time = max(0, min(new_time, 1440 - 15))
+    return new_time
+
+def reschedule(adherence_record):
+    flattened_records = flatten_records(adherence_record)
+
+    adjusted_times = {}
+    for time, adherence in flattened_records.items():
+        new_time = timegen(time, adherence, 15, 15)
+        adjusted_times[time] = new_time
+
+    new_schedule = {}
+    for drug, times in adherence_record.items():
+        new_schedule[drug] = [adjusted_times[time] for time in times]
+
+    return new_schedule
+
+# # %% sample
 # medications = [
 #     {
 #         'name': 'drug a',
@@ -168,3 +200,11 @@ def create_schedule(medications, routines):
 # }
 
 # schedule, warnings = create_schedule(medications, routines)
+
+# adherence_record = {
+#     'drug a': {450: 1, 690: 0, 930: 1, 1170: -1},
+#     'drug b': {1290: 0},
+#     'drug c': {450: 1, 1290: 0}
+# }
+
+# reschedule(adherence_record)

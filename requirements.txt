@@ -2,3 +2,4 @@ ortools
 numpy
 spacy
 pandas
+gym
