@@ -169,13 +169,6 @@ def create_schedule(medications: list, routines: dict) -> str:
             'medications': medications
         }, indent=True)
         return outputs
-        outputs = json.dumps({
-            'schedule': return_schedule,
-            'warning_keys': list(set(interaction_warnings)),
-            'warnings_dict': med_warnings,
-            'medications': medications
-        }, indent=True)
-        return outputs
     else:
         print('no solution found for the given constraints.')
 

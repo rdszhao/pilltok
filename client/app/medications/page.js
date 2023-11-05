@@ -17,30 +17,16 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import {useEffect, useState} from 'react'
 import {useAuth} from '@clerk/nextjs'
 
-const mockData = [
-  {
-    name: 'ATENOLOL',
-    dosage: '100 mg',
-    time_period: 'TAKE 1 TABLET BY MOUTH BEFORE BEDTIME',
-    interactions: ['ALPRAZOLAM', 'AMOXICILLIN'],
-  },
-  {
-    name: 'AMOXICILLIN',
-    dosage: '500 MG',
-    time_period: 'TAKE 4 CAPSULE MOUTH 1 HOUR',
-    interactions: ['WARFARIN'],
-  },
-]
 
 export default function Medications() {
   const {userId} = useAuth()
-  const [medications, setMedications] = useState(mockData)
+  const [medications, setMedications] = useState([])
   const [modified, setModified] = useState(false)
 
   useEffect(() => {
     // Fetch the user's medications from the database
     // and update the medications state variable
-    fetch(`localhost:8000/medications/${userId}`)
+    fetch(`http://localhost:8000/medications/${userId}`)
       .then((res) => res.json())
       .then((data) => setMedications(data))
   }, [])
@@ -53,13 +39,18 @@ export default function Medications() {
   }
 
   const handleSave = () => {
+    const obj = {
+      "data": medications,
+      "user_id": userId
+    }
+    console.log(obj)
     // Save the user's medications to the database
-    fetch(`localhost:8000/medications/${userId}`, {
+    fetch(`http://localhost:8000/medications`, {
       method: 'POST',
-      body: JSON.stringify({
-        medications,
-        userId,
-      }),
+      body: JSON.stringify(obj),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }).then((res) => {
       if (res.ok) {
         setModified(false)
@@ -95,9 +86,9 @@ export default function Medications() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {medications.map((medication) => (
+            {medications.map((medication, index) => (
               <TableRow
-                key={medication.id}
+                key={index}
                 sx={{'&:last-child td, &:last-child th': {border: 0}}}
               >
                 <TableCell component="th" scope="row">
@@ -121,6 +112,13 @@ export default function Medications() {
           </TableBody>
         </Table>
       </TableContainer>
+      {modified && (
+        <Button variant="contained" color="primary" onClick={()=>{
+          handleSave()
+        }}>
+          Save
+        </Button>
+      )}
     </Box>
   )
 }

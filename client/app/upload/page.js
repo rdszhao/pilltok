@@ -49,6 +49,29 @@ export default function Upload() {
     event.preventDefault()
   }
 
+  const handleUpload = () => {
+    // Convert each image to base64
+    const base64Images = images.map((image) => {
+      const base64 = image.split(',')[1]
+      return base64
+    })
+    console.log(base64Images)
+
+    fetch(`http://localhost:8000/meds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({images: base64Images, userID: userId}),
+    })
+      .then((res) => {
+        if (res.ok) {
+          setImages([])
+          alert('Images uploaded successfully!')
+        }
+      })
+  }
+
   return (
     <Box
       width="100vw"
@@ -59,6 +82,11 @@ export default function Upload() {
       alignItems="center"
       p={4}
     >
+      <Button variant="contained" color="primary" disabled={!images.length} 
+        onClick={() => handleUpload()}
+      >
+        Upload
+      </Button>
       <Box
         width="80%"
         height="70%"

@@ -42,9 +42,14 @@ export default function Routine() {
   useEffect(() => {
     // Fetch the user's routine from the database
     // and update the routines state variable
-    fetch(`localhost:8000/routine/${userId}`)
+    console.log(routines)
+    fetch(`http://localhost:8000/routine/${userId}`)
       .then((res) => res.json())
-      .then((data) => setRoutines(data))
+      .then((data) => {
+        if (!data.meals){
+          return
+        }
+        setRoutines(data)})
   }, [])
 
   const handleSelectChange = (event) => {
@@ -70,12 +75,12 @@ export default function Routine() {
     event.preventDefault()
     // Handle the form submission logic here
     console.log(routines)
-    fetch('localhost:8000/routine', {
+    fetch('http://localhost:8000/routines', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({...routines, userId}),
+      body: JSON.stringify({...routines, user_id: userId}),
     }).then((response) => {
       if (response.ok) {
         // Handle success
@@ -145,7 +150,7 @@ export default function Routine() {
           </Grid>
 
           {/* Meal times */}
-          {Object.entries(routines.meals).map(([mealType, value], index) => (
+          {routines.meals && Object.entries(routines.meals).map(([mealType, value], index) => (
             <Grid
               item
               xs={12}

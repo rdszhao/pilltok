@@ -14,32 +14,7 @@ import {
 import {Warning} from '@mui/icons-material'
 import {useAuth} from '@clerk/nextjs'
 
-const data = {
-  schedule: {
-    ATENOLOL: [450, 930, 1410],
-    AMOXICILLIN: [450, 770, 1090, 1410],
-  },
-  warning_keys: [
-    {
-      ATENOLOL: 'AMOXICILLIN',
-    },
-    {
-      ATENOLOL: 'AMOXICILLIN',
-    },
-  ],
-  warnings_dict: {
-    ATENOLOL: {
-      ALPRAZOLAM:
-        'Alprazolam may decrease the excretion rate of Amoxicillin which could result in a higher serum level.',
-      AMOXICILLIN:
-        'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.',
-    },
-    AMOXICILLIN: {
-      WARFARIN:
-        'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.',
-    },
-  },
-}
+
 // Convert minutes since midnight to a percentage of the day
 const minutesToPercentOfDay = (minutes) => (minutes / 1440) * 100
 
@@ -53,6 +28,7 @@ const minutesToTimeString = (minutes) => {
 const ScheduleTimeline = () => {
   const {userId} = useAuth()
   const [status, setStatus] = useState({})
+  const [data, setData] = useState({})
   const [openSnackbar, setOpenSnackbar] = useState(false)
   // Add the following state variable for the interactions modal
   const [interactionsModalOpen, setInteractionsModalOpen] = useState(false)
@@ -61,9 +37,11 @@ const ScheduleTimeline = () => {
     // Fetch the user's schedule from the database
     // and update the status state variable
 
-    fetch(`localhost:8000/schedule/${userId}`)
+    fetch(`http://localhost:8000/schedule/${userId}`)
       .then((res) => res.json())
-      .then((data) => setStatus(data))
+      .then((data) => {
+        console.log(data)
+        setData(data)})
   }, [])
 
   // Function to handle opening the modal
@@ -74,6 +52,18 @@ const ScheduleTimeline = () => {
   // Function to handle closing the modal
   const handleCloseInteractionsModal = () => {
     setInteractionsModalOpen(false)
+  }
+
+  if(!data.schedule){
+    return (<Box
+    display="flex"
+    flexDirection="column"
+    alignItems="center"
+    justifyContent="center"
+    p={4}
+    height="100vh"
+    width="100vw"
+  ><Typography variant="h6">Loading...</Typography></Box>)
   }
 
   const combinedSchedule = Object.keys(data.schedule).reduce((acc, drug) => {
