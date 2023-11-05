@@ -11,7 +11,7 @@ except:
     download('en_core_web_sm')
     nlp = spacy.load('en_core_web_sm')
 
-def parse_time_period_with_spacy(time_period, routines, nlp=nlp):
+def parse_periods(time_period, routines, nlp=nlp):
     doc = nlp(time_period)
     matcher = Matcher(nlp.vocab)
 
@@ -83,7 +83,7 @@ def create_schedule(medications, routines):
 
     schedule = {}
     for med in medications:
-        dosage_times = parse_time_period_with_spacy(med['time_period'], routines)
+        dosage_times = parse_periods(med['time_period'], routines)
         constrained_times = [t for t in dosage_times if routines['wakeup_time'] <= t < routines['bedtime']]
         for dose, time in enumerate(constrained_times):
             schedule[(med['name'], dose)] = model.NewIntVar(time, time, f"{med['name']}_dose_{dose}")
