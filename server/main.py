@@ -132,7 +132,21 @@ async def routines(routines: Routines):
 
 @app.post("/medications")
 async def medications(medications: Medications):
+    # step 1: get user_id
     user_id = medications.user_id
+
+    # step 3: get routines and create schedule
+    routines = get_from_redis(user_id)['routine']
+
+    # step 4: create schedule
+    schedule = create_schedule(medications, routines)
+
+    # step 2: get medications
     medications = json.dumps(medications.data)
     set_medications(medications, user_id)
+
+    # step 5: set schedule in redis
+    schedule = json.dumps(schedule)
+    set_schedule(schedule, user_id)
+    
     return Response(content=None, status_code=status.HTTP_200_OK)
