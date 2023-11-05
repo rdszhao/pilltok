@@ -1,4 +1,3 @@
-# %%
 import re
 import json
 import numpy as np
@@ -15,7 +14,6 @@ except:
     nlp = spacy.load('en_core_web_sm')
 
 
-# %%
 def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
@@ -219,34 +217,3 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
         new_schedule[drug] = [adjusted_times[time] for time in times]
 
     return json.dumps(new_schedule, indent=True)
-
-# # %% sample
-
-# medications = [
-#     {'name': 'ATENOLOL',
-#     'dosage': '100 mg',
-#     'time_period': 'TAKE 1 TABLET BY MOUTH BEFORE BEDTIME',
-#     'interactions': {'ALPRAZOLAM': 'Alprazolam may decrease the excretion rate of Amoxicillin which could result in a higher serum level.',
-#                     'AMOXICILLIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}},
-#     {'name': 'AMOXICILLIN',
-#     'dosage': '500 MG',
-#     # 'time_period': 'TAKE 4 TIMES A DAY',
-#     'time_period': 'TAKE 4 TIMES A DAY',
-#     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}} ]
-
-# routines = {
-#     'wakeup_time': 7 * 60,  # 7:00 am
-#     'bedtime': 24 * 60,     # 10:00 pm
-#     'meals': {
-#         'breakfast': 8 * 60,
-#         'lunch': 12 * 60,
-#         'dinner': 18 * 60
-#     }
-# }
-
-# # i want to take the schedule json string object and write it to a json file
-# schedule = create_schedule(medications, routines)
-# with open('ouput.json', 'w') as file:
-#     file.write(schedule)
-
-# print(schedule)
