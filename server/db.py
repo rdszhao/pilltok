@@ -11,12 +11,11 @@ r = redis.Redis(
 	password=os.getenv['REDIS_PASSWORD']
 )
 
-# def send_to_redis(schedule, routine, adherence, user_id: int):
 def send_to_redis(schedule: str, routine: str, adherence: str, user_id: int) -> bool:
 	try:
 		r.set(user_id + ':schedule', schedule)
 		r.set(user_id + ':routine', routine)
-		r.set(user_id + ':adherence', adherence)
+		r.set(user_id + ':medications', medications)
 		return True
 	except Exception as e:
 		print(e)
@@ -28,11 +27,11 @@ def send_to_redis(schedule: str, routine: str, adherence: str, user_id: int) -> 
 def get_from_redis(user_id: int) -> str:
 	schedule = r.get(user_id + ':schedule')
 	routine = r.get(user_id + ':routine')
-	adherence = r.get(user_id + ':adherence')
+	medications = r.get(user_id + ':medications')
 	return_json = {
 		'schedule': schedule,
 		'routine': routine,
-		'adherence': adherence
+		'medications': medications
 	}
 	return_json = json.dumps(return_json)
 	return return_json
