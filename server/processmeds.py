@@ -5,7 +5,8 @@ import requests
 
 # Function to call the Vision API with an image file
 def detect_text_from_image(image, service):
-    content = image.decode()
+
+    content = image#.decode()
     service_request = service.images().annotate(body={
         'requests': [{
             'image': {
@@ -101,7 +102,7 @@ def check_drug_interactions(drug_list):
     rxcuis = [rxcui for rxcui in rxcuis if rxcui is not None]  # Filter out any None values
 
     if len(rxcuis) < 2:
-        return "Need at least two drugs to check for interactions."
+        return []
 
     # Create a comma-separated string of RxCUIs
     rxcui_str = '+'.join(rxcuis)
@@ -112,10 +113,8 @@ def check_drug_interactions(drug_list):
 
     if response.status_code == 200:
         data = response.json()
+        print(data)
         interaction_data = data.get('fullInteractionTypeGroup', [])
-
-        if not interaction_data:
-            return None
 
         interactions = []
         for group in interaction_data:
@@ -180,7 +179,6 @@ def get_medications(medications, interaction_dictionary, time_period):
     curr_dictionary['time_period'] = time_period[medication]
 
     interactions = {}
-    print('medication: /n',medication)
     for pair, description in interaction_dictionary.items():
       if pair[0].upper() == medication:
         interactions[pair[1].upper()] = description

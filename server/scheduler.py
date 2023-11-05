@@ -88,7 +88,7 @@ def parse_periods(time_period: str, routines: dict, nlp) -> list:
 
     return valid_dosage_times
 
-def split_medications_and_interactions(medications_list: list) -> list, dict:
+def split_medications_and_interactions(medications_list: list) -> tuple:
     new_medications = []
     interactions = {}
 
