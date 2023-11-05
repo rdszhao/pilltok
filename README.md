@@ -14,7 +14,7 @@ PillTok is an application that allows patients to easily manage multiple medicat
 
 ## Table of Contents
 
-- [SlugLoop](#slugloop)
+- [PillTok](#pilltok)
   - [Overview](#overview)
   - [Contributors:](#contributors)
   - [Table of Contents](#table-of-contents)
