@@ -8,6 +8,29 @@ from dotenv import load_dotenv
 
 
 
+# Function to call the Vision API with an image file
+def detect_text_from_image(image,service):
+    #content = b64encode(image).decode()
+    content = image.decode()
+    service_request = service.images().annotate(body={
+        'requests': [{
+            'image': {
+                'content': content
+            },
+            'features': [{
+                'type': 'TEXT_DETECTION'
+            }]
+        }]
+    })
+    response = service_request.execute()
+
+    # Extract the first text annotation (which is typically the whole text)
+    for result in response['responses']:
+        text_annotations = result.get('textAnnotations', [])
+        if text_annotations:
+            return text_annotations[0]['description']
+    return None
+
 
 # Function to call the Vision API with an image file
 def detect_text(image_path,service):
@@ -190,9 +213,10 @@ def get_medications(medications, interaction_dictionary, time_period):
     curr_dictionary['time_period'] = time_period[medication]
 
     interactions = {}
+    print('medication: /n',medication)
     for pair, description in interaction_dictionary.items():
-      if pair[0] == medication:
-        interactions[1] = interaction_dictionary[pair]
+      if pair[0].upper() == medication:
+        interactions[pair[1].upper()] = description
 
     curr_dictionary['interactions'] = interactions
 
@@ -202,11 +226,11 @@ def get_medications(medications, interaction_dictionary, time_period):
 
 #Extract time period information for drugs
 def extract_time_period(text):
-  ending_words = ['BEDTIME', 'DAILY', 'HOUR', 'LUNCH', 'BREAKFAST', 'DINNER', 'DAY']
+  ending_words = ['BEDTIME','bedtime', 'DAILY', 'HOUR', 'LUNCH', 'BREAKFAST', 'DINNER', 'DAY']
   split_file_contents = text.split()
 
   for i in range(len(split_file_contents)):
-    if split_file_contents[i] == 'TAKE':
+    if split_file_contents[i] in ['Take','TAKE']:
       starting_index = i
 
     elif split_file_contents[i] in ending_words:
@@ -215,13 +239,49 @@ def extract_time_period(text):
   return " ".join(split_file_contents[starting_index:ending_index + 1])
 
 def get_interactions(interacting_pairs, interactions):
-  return {k: v for k, v in zip(interacting_pairs, interactions)}
+    # Extract the 'description' from each dictionary in the interactions list
+    descriptions = [interaction['description'] for interaction in interactions]
+    # Zip the interacting pairs with the corresponding descriptions
+    return {k: v for k, v in zip(interacting_pairs, descriptions)}
+
+# def get_interactions(interacting_pairs, interactions):
+#   return {k: v for k, v in zip(interacting_pairs, interactions['description'])}
 
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 
 # Assuming detect_text, extract_info, get_drug_interacting_pairs, check_drug_interactions, get_interactions, extract_time_period are defined elsewhere
+
+def picture_to_image(image_list):
+
+    # Load the environment variables
+    load_dotenv('../.env')
+    api_key = os.getenv('GCP_API_KEY')
+    service = build('vision', 'v1', developerKey=api_key)
+
+    # Process each image and collect the results in a list
+    text_results = []
+    
+    for image in image_list:
+        # file_path = os.path.join(input_folder_path, image_file)
+        text = detect_text_from_image(image,service)
+        text_results.append(text)
+
+    # Now text_results contains all the detected texts from the images
+    medications = {}
+    interactions = {}
+    instructions = {}
+
+    for text in text_results:
+        extract_info(text, medications)
+        medicine_names = list(medications.keys())
+        instructions[medicine_names[len(medicine_names) - 1]] = extract_time_period(text)
+    interacting_pairs = get_drug_interacting_pairs(medications.keys())
+    interaction_descriptions = check_drug_interactions(medications.keys())
+    interactions = get_interactions(interacting_pairs, interaction_descriptions)
+    all_medicines = get_medications(medications,interactions,instructions)
+    return all_medicines
 
 def main():
     # Specify the path to your folder that contains the images
@@ -251,6 +311,11 @@ def main():
                 text_results.append(text)
         else:
             print(f"Skipping directory: {file_path}")
+    # print('length of text results:',len(text_results))
+    # # print(text_results)
+
+    # interaction_descriptions_check = check_drug_interactions(['CLONIDINE','ATENOLOL'])
+    # print(interaction_descriptions_check)
 
     # Now text_results contains all the detected texts from the images
     medications = {}
@@ -259,12 +324,15 @@ def main():
 
     for text in text_results:
         extract_info(text, medications)
-        interacting_pairs = get_drug_interacting_pairs(medications.keys())
-        interaction_descriptions = check_drug_interactions(medications.keys())
         medicine_names = list(medications.keys())
         instructions[medicine_names[len(medicine_names) - 1]] = extract_time_period(text)
-    
+    # print(medications.keys())
+    interacting_pairs = get_drug_interacting_pairs(medications.keys())
+    #print('interacting pairs:\n',interacting_pairs)
+    interaction_descriptions = check_drug_interactions(medications.keys())
+    #print('interacting_descripion\n',interaction_descriptions)
     interactions = get_interactions(interacting_pairs, interaction_descriptions)
+    #print('interactions:\n', interactions)
     all_medicines = get_medications(medications,interactions,instructions)
     print(all_medicines)
 
