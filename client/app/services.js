@@ -1,9 +1,27 @@
-import React from 'react'
+import React, {useRef} from 'react'
 import {Box, Card, CardContent, Typography, Icon} from '@mui/material'
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'
 import ScheduleIcon from '@mui/icons-material/Schedule'
 import MedicationIcon from '@mui/icons-material/Medication'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
+import {useInView, motion} from 'framer-motion'
+
+const stepVariants = {
+  visible: (i) => ({
+    opacity: 1,
+    translateY: 0,
+    transition: {
+      delay: i * 0.4 + 1,
+    },
+  }),
+  hidden: {opacity: 0, translateY: -100},
+}
+
+const titleVariants = {
+  visible: {opacity: 1, transition: {duration: 0.5, delay: 0.5}},
+  hidden: {opacity: 0},
+}
+
 const services = [
   {
     title: 'Automated Recognition',
@@ -27,65 +45,85 @@ const services = [
   },
 ]
 
-const ServiceCard = ({title, description, icon}) => (
-  <Card
-    sx={{
-      maxWidth: 200,
-      height: 'auto',
-      m: 2,
-      boxShadow: 3,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'flex-start',
-      alignItems: 'center',
-      padding: 2,
-      backgroundColor: 'background.paper',
-    }}
+const ServiceCard = ({title, description, index, icon, isInView}) => (
+  <motion.div
+    variants={stepVariants}
+    initial="hidden"
+    animate={isInView ? 'visible' : 'hidden'}
+    custom={index}
   >
-    <CardContent
+    <Card
       sx={{
+        maxWidth: 200,
+        height: 300,
+        m: 2,
+        boxShadow: 3,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'center',
+        padding: 2,
+        backgroundColor: 'background.paper',
       }}
     >
-      <Icon
+      <CardContent
         sx={{
-          fontSize: 48,
-          mb: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
-        {icon}
-      </Icon>
-      <Typography gutterBottom variant="h5" component="div" textAlign="center">
-        {title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
-        {description}
-      </Typography>
-    </CardContent>
-  </Card>
+        <Icon
+          sx={{
+            fontSize: 48,
+            mb: 2,
+          }}
+        >
+          {icon}
+        </Icon>
+        <Typography
+          gutterBottom
+          variant="h5"
+          component="div"
+          textAlign="center"
+        >
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" textAlign="center">
+          {description}
+        </Typography>
+      </CardContent>
+    </Card>
+  </motion.div>
 )
 
 export default function Services() {
+  const ref = useRef()
+  const isInView = useInView(ref, {once: true, amount: 0.5})
   return (
-    <Box width="100vw" height="100vh" padding={4}>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{
-          mb: 4,
-        }}
+    <Box ref={ref} width="100vw" height="100vh" padding={4}>
+      <motion.div
+        variants={titleVariants}
+        initial="hidden"
+        animate={isInView ? 'visible' : 'hidden'}
       >
-        OUR SERVICES
-      </Typography>
-      <Typography variant="h2" fontWeight="bold" my={2}>
-        We Provide
-      </Typography>
-      <Typography variant="body1" mb={4}>
-        All in one medication management solution.
-      </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            mb: 4,
+          }}
+        >
+          OUR SERVICES
+        </Typography>
+        <Typography variant="h2" fontWeight="bold" my={2}>
+          We Provide
+        </Typography>
+        <Typography variant="body1" mb={4}>
+          All in one medication management solution.
+        </Typography>
+      </motion.div>
       <Box
         sx={{
           display: 'flex',
@@ -95,7 +133,12 @@ export default function Services() {
         }}
       >
         {services.map((service, index) => (
-          <ServiceCard key={index} {...service} />
+          <ServiceCard
+            key={index}
+            index={index}
+            isInView={isInView}
+            {...service}
+          />
         ))}
       </Box>
     </Box>

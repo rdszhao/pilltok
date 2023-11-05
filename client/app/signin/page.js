@@ -1,5 +1,5 @@
 'use client'
-import {SignUp} from '@clerk/nextjs'
+import {SignIn} from '@clerk/nextjs'
 import {Box, CircularProgress} from '@mui/material'
 import Image from 'next/image'
 import {motion} from 'framer-motion'
@@ -27,7 +27,7 @@ export default function Page() {
       alignItems="center"
       sx={{
         background:
-          'linear-gradient(90deg, rgba(144,238,144,1) 0%, rgba(255,255,255,1) 100%)',
+          'linear-gradient(-90deg, rgba(173,216,230,1) 0%, rgba(255,255,255,1) 100%)', // LightSkyBlue color
       }}
     >
       {isLoaded ? (
@@ -43,12 +43,12 @@ export default function Page() {
           justifyContent="center"
           alignItems="center"
         >
+          <SignIn />
           <Box height="80%" width="50%">
             <motion.div animate={imageAnimation}>
-              <Image src="/joy.png" width={400} height={400} />
+              <Image src="/proctor.png" width={400} height={400} />
             </motion.div>
           </Box>
-          <SignUp />
         </Box>
       )}
     </Box>
