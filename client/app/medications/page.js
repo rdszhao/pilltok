@@ -14,7 +14,8 @@ import {
   IconButton,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
+import {useAuth} from '@clerk/nextjs'
 
 const mockData = [
   {
@@ -32,12 +33,41 @@ const mockData = [
 ]
 
 export default function Medications() {
+  const {userId} = useAuth()
   const [medications, setMedications] = useState(mockData)
+  const [modified, setModified] = useState(false)
+
+  useEffect(() => {
+    // Fetch the user's medications from the database
+    // and update the medications state variable
+    fetch(`localhost:8000/medications/${userId}`)
+      .then((res) => res.json())
+      .then((data) => setMedications(data))
+  }, [])
 
   const handleDelete = (medicationId) => {
     setMedications(
       medications.filter((medication) => medication.id !== medicationId),
     )
+    setModified(true)
+  }
+
+  const handleSave = () => {
+    // Save the user's medications to the database
+    fetch(`localhost:8000/medications/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        medications,
+        userId,
+      }),
+    }).then((res) => {
+      if (res.ok) {
+        setModified(false)
+        alert('Medications saved!')
+      } else {
+        alert('Error saving medications')
+      }
+    })
   }
 
   return (

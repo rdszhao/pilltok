@@ -1,5 +1,5 @@
 'use client'
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import {
   Box,
   Typography,
@@ -12,6 +12,7 @@ import {
   Modal,
 } from '@mui/material'
 import {Warning} from '@mui/icons-material'
+import {useAuth} from '@clerk/nextjs'
 
 const data = {
   schedule: {
@@ -38,20 +39,6 @@ const data = {
         'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.',
     },
   },
-  medications_dict: [
-    {
-      name: 'ATENOLOL',
-      dosage: '100 mg',
-      time_period: 'TAKE 3 TIMES A DAY',
-      interactions: ['ALPRAZOLAM', 'AMOXICILLIN'],
-    },
-    {
-      name: 'AMOXICILLIN',
-      dosage: '500 MG',
-      time_period: 'TAKE 4 TIMES A DAY',
-      interactions: ['WARFARIN'],
-    },
-  ],
 }
 // Convert minutes since midnight to a percentage of the day
 const minutesToPercentOfDay = (minutes) => (minutes / 1440) * 100
@@ -64,10 +51,20 @@ const minutesToTimeString = (minutes) => {
 }
 
 const ScheduleTimeline = () => {
+  const {userId} = useAuth()
   const [status, setStatus] = useState({})
   const [openSnackbar, setOpenSnackbar] = useState(false)
   // Add the following state variable for the interactions modal
   const [interactionsModalOpen, setInteractionsModalOpen] = useState(false)
+
+  useEffect(() => {
+    // Fetch the user's schedule from the database
+    // and update the status state variable
+
+    fetch(`localhost:8000/schedule/${userId}`)
+      .then((res) => res.json())
+      .then((data) => setStatus(data))
+  }, [])
 
   // Function to handle opening the modal
   const handleOpenInteractionsModal = () => {
@@ -137,11 +134,28 @@ const ScheduleTimeline = () => {
     // Convert the status object to the desired format before submission
     const submissionStatus = Object.keys(status).reduce((acc, key) => {
       const time = key.split('-')[1]
-      acc[time] = status[key]
+      // Save as int
+      acc[time] = parseInt(status[key])
       return acc
     }, {})
     console.log('Submission status:', submissionStatus)
     // Add your submit logic here
+
+    fetch('localhost:8000/reschedule', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({...submissionStatus, userId}),
+    }).then((response) => {
+      if (response.ok) {
+        // Handle success
+        alert('Schedule saved!')
+      } else {
+        // Handle error
+        alert('Something went wrong!')
+      }
+    })
   }
 
   const handleCloseSnackbar = (event, reason) => {

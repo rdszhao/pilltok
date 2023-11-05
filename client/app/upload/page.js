@@ -3,8 +3,10 @@
 import {Box, Button, Typography} from '@mui/material'
 import {useState, useRef} from 'react'
 import Image from 'next/image'
+import {useAuth} from '@clerk/nextjs'
 
 export default function Upload() {
+  const {userId} = useAuth()
   const fileInputRef = useRef(null)
   const [images, setImages] = useState([])
 

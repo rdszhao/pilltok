@@ -10,7 +10,8 @@ import {
   MenuItem,
   Grid,
 } from '@mui/material'
-import {useState} from 'react'
+import {useAuth} from '@clerk/nextjs'
+import {useEffect, useState} from 'react'
 
 // Helper function to create an array of options for hours (0-23)
 const generateHourOptions = () => {
@@ -27,6 +28,7 @@ const generateHourOptions = () => {
 const hoursOptions = generateHourOptions()
 
 export default function Routine() {
+  const {userId} = useAuth()
   const [routines, setRoutines] = useState({
     wakeup_time: 0,
     bedtime: 0,
@@ -36,6 +38,14 @@ export default function Routine() {
       dinner: 0,
     },
   })
+
+  useEffect(() => {
+    // Fetch the user's routine from the database
+    // and update the routines state variable
+    fetch(`localhost:8000/routine/${userId}`)
+      .then((res) => res.json())
+      .then((data) => setRoutines(data))
+  }, [])
 
   const handleSelectChange = (event) => {
     const {name, value} = event.target
@@ -60,6 +70,21 @@ export default function Routine() {
     event.preventDefault()
     // Handle the form submission logic here
     console.log(routines)
+    fetch('localhost:8000/routine', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({...routines, userId}),
+    }).then((response) => {
+      if (response.ok) {
+        // Handle success
+        alert('Routine saved!')
+      } else {
+        // Handle error
+        alert('Something went wrong!')
+      }
+    })
   }
 
   return (
