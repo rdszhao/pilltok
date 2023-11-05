@@ -173,7 +173,7 @@ def create_schedule(medications: list, routines: dict) -> str:
             'schedule': return_schedule,
             'warning_keys': list(set(interaction_warnings)),
             'warnings_dict': med_warnings,
-            'medications_dict': medications
+            'medications': medications
         }, indent=True)
         return outputs
     else:
