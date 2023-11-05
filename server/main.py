@@ -22,36 +22,42 @@ app.add_middleware(
 
 class Routines(BaseModel):
     pass
-# routines = {
-#     'wakeup_time': 7 * 60,  # 7:00 am
-#     'bedtime': 24 * 60,     # 10:00 pm
-#     'meals': {
-#         'breakfast': 8 * 60,
-#         'lunch': 12 * 60,
-#         'dinner': 18 * 60
-#     }
-# }
 
+class Preferences(BaseModel):
+    pass
+
+class Medicines(BaseModel):
+    pass
+
+class Schedule(BaseModel):
+    pass
 
 class ImageList(BaseModel):
     images: List[str]
     userID: str
     routines: Routines
 
-
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-# routines = {
-#     'wakeup_time': 7 * 60,  # 7:00 am
-#     'bedtime': 24 * 60,     # 10:00 pm
-#     'meals': {
-#         'breakfast': 8 * 60,
-#         'lunch': 12 * 60,
-#         'dinner': 18 * 60
-#     }
-# }
+@app.get("/preferences/{user_id}")
+async def get_preferences(user_id: str):
+    preferences = Preferences()
+    # TODO: Implement logic to retrieve preferences for the given user_id
+    return preferences
+
+@app.get("/medicines/{user_id}")
+async def get_medicines(user_id: str):
+    medicines = Medicines()
+    # TODO: Implement logic to retrieve medicines for the given user_id
+    return medicines
+
+@app.get("/schedule/{user_id}")
+async def get_schedule(user_id: str):
+    schedule = Schedule()
+    # TODO: Implement logic to retrieve schedule for the given user_id
+    return schedule
 
 class Feedback(BaseModel):
     pass
@@ -62,7 +68,6 @@ async def meds(image_list: ImageList):
     all_stuffs = picture_to_image(image_list)
     processed_stuffs = create_schedule(all_stuffs, image_list.routines)
     print(processed_stuffs)
-
 
 @app.post("/feedback")
 async def feedback(feedback: Feedback):
