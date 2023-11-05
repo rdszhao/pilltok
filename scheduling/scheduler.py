@@ -13,6 +13,7 @@ except:
     download('en_core_web_sm')
     nlp = spacy.load('en_core_web_sm')
 
+
 def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
@@ -82,7 +83,8 @@ def parse_periods(time_period: str, routines: dict, nlp=nlp) -> int:
 
     return dosage_times
 
-def create_schedule(medications: list, routines: dict) -> tuple:
+# !! ENDPOINT !!
+def create_schedule(medications: list, routines: dict) -> str:
     model = cp_model.CpModel()
     medications_dict = {med['name']: med for med in medications}
 
@@ -155,7 +157,13 @@ def create_adherence_record(schedule: dict, adherences: dict) -> dict:
         adherence_record[drug] = {time: adherences[time] for time in times}
     return adherence_record
 
-def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> dict:
+# !! ENDPOINT !!
+def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
+    if type(schedule) is str:
+        schedule = json.laods(schedule)
+    if type(adherences) is str:
+        adherences = json.laods(adherences)
+
     adherence_record = create_adherence_record(schedule, adherences)
 
     adjusted_times = {}
@@ -202,6 +210,7 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> dict:
 
 # schedule = create_schedule(medications, routines)
 # ss = json.loads(schedule)
+# print(type(schedule))
 # print(ss)
 
 # adherences = {450: 1, 690: 0, 930: 1, 1170: -1, 1290: 0}
