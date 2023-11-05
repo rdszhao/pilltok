@@ -1,4 +1,5 @@
 import re
+import json
 import numpy as np
 import spacy
 from spacy.matcher import Matcher
@@ -135,7 +136,8 @@ def create_schedule(medications: list, routines: dict) -> tuple:
 
         for warning in warnings:
             print(warning)
-        return return_schedule, interaction_warnings
+            outputs = json.dumps({'schedule': return_schedule, 'warnings': interaction_warnings}, indent=True)
+            return outputs
     else:
         print('no solution found for the given constraints.')
 
@@ -154,11 +156,11 @@ def timegen(time: int, adherence: int, mean: int, std: int) -> int:
     new_time = max(0, min(new_time, 1440 - 15))
     return new_time
 
-def reschedule(adherence_record: dict, mean=15, std=15) -> dict:
-    flattened_records = flatten_records(adherence_record)
+def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> dict:
+    adherence_record = create_adherence_record(schedule, adherences)
 
     adjusted_times = {}
-    for time, adherence in flattened_records.items():
+    for time, adherence in adherences.items():
         new_time = timegen(time, adherence, mean, std)
         adjusted_times[time] = new_time
 
@@ -166,45 +168,48 @@ def reschedule(adherence_record: dict, mean=15, std=15) -> dict:
     for drug, times in adherence_record.items():
         new_schedule[drug] = [adjusted_times[time] for time in times]
 
-    return new_schedule
-# # %% sample
-# medications = [
-#     {
-#         'name': 'drug a',
-#         'dosage': '200 mg',
-#         'time_period': 'every 4 hours',
-#         'interactions': ['drug b']
-#     },
-#     {
-#         'name': 'drug b',
-#         'dosage': '100 mg',
-#         'time_period': 'before bed',
-#         'interactions': ['drug c']
-#     },
-#     {
-#         'name': 'drug c',
-#         'dosage': '200 mg',
-#         'time_period': 'once in the morning, once before bed'
-#     }
-# ]
+    return json.dumps(new_schedule, indent=True)
 
-# routines = {
-#     'wakeup_time': 7 * 60,  # 7:00 am
-#     'bedtime': 22 * 60,     # 10:00 pm
-#     'meals': {
-#         'breakfast': 8 * 60,
-#         'lunch': 12 * 60,
-#         'dinner': 18 * 60
-#     }
-# }
+def create_adherence_record(schedule: dict, adherences: dict) -> dict:
+    adherence_record = {}
+    for drug, times in schedule.items():
+        adherence_record[drug] = {time: adherences[time] for time in times}
+    return adherence_record
 
-# schedule, warnings = create_schedule(medications, routines)
-# print(schedule, warnings)
+# %% sample
+medications = [
+    {
+        'name': 'drug a',
+        'dosage': '200 mg',
+        'time_period': 'every 4 hours',
+        'interactions': ['drug b']
+    },
+    {
+        'name': 'drug b',
+        'dosage': '100 mg',
+        'time_period': 'before bed',
+        'interactions': ['drug c']
+    },
+    {
+        'name': 'drug c',
+        'dosage': '200 mg',
+        'time_period': 'once in the morning, once before bed'
+    }
+]
 
-# adherence_record = {
-#     'drug a': {450: 1, 690: 0, 930: 1, 1170: -1},
-#     'drug b': {1290: 0},
-#     'drug c': {450: 1, 1290: 0}
-# }
+routines = {
+    'wakeup_time': 7 * 60,  # 7:00 am
+    'bedtime': 22 * 60,     # 10:00 pm
+    'meals': {
+        'breakfast': 8 * 60,
+        'lunch': 12 * 60,
+        'dinner': 18 * 60
+    }
+}
 
-# reschedule(adherence_record, 20, 15)
+schedule = create_schedule(medications, routines)
+ss = json.loads(schedule)
+print(ss)
+
+adherences = {450: 1, 690: 0, 930: 1, 1170: -1, 1290: 0}
+print(json.loads(reschedule(ss['schedule'], adherences, 20, 15)))
