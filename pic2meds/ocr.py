@@ -3,9 +3,11 @@ import os
 from io import BytesIO
 from google.colab import files
 from base64 import b64encode
+from dotenv import load_dotenv
 
+load_dotenv('../.env')
 # Construct the Vision API service object
-api_key = "AIzaSyB2TiyCwOmhJvCtfrGDVQhgK5pY4fr7zVc"
+api_key = os.getenv('GCP_API_KEY')
 service = build('vision', 'v1', developerKey=api_key)
 
 # Specify the path to your folder on Google Drive that contains the images

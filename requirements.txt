@@ -3,3 +3,4 @@ numpy
 spacy
 pandas
 gym
+dotenv
