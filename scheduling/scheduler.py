@@ -141,7 +141,7 @@ def create_schedule(medications: list, routines: dict) -> tuple:
     else:
         print('no solution found for the given constraints.')
 
-def timegen(time: int, adherence: int, mean: int, std: int) -> int:
+def timesample(time: int, adherence: int, mean: int, std: int) -> int:
     mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
     std_dev = std if (adherence == -1 or adherence == 1) else 0
     new_time = int(np.random.normal(time + mean_shift, std_dev))
@@ -149,12 +149,18 @@ def timegen(time: int, adherence: int, mean: int, std: int) -> int:
     new_time = max(0, min(new_time, 1440 - 15))
     return new_time
 
+def create_adherence_record(schedule: dict, adherences: dict) -> dict:
+    adherence_record = {}
+    for drug, times in schedule.items():
+        adherence_record[drug] = {time: adherences[time] for time in times}
+    return adherence_record
+
 def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> dict:
     adherence_record = create_adherence_record(schedule, adherences)
 
     adjusted_times = {}
     for time, adherence in adherences.items():
-        new_time = timegen(time, adherence, mean, std)
+        new_time = timesample(time, adherence, mean, std)
         adjusted_times[time] = new_time
 
     new_schedule = {}
@@ -162,12 +168,6 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> dict:
         new_schedule[drug] = [adjusted_times[time] for time in times]
 
     return json.dumps(new_schedule, indent=True)
-
-def create_adherence_record(schedule: dict, adherences: dict) -> dict:
-    adherence_record = {}
-    for drug, times in schedule.items():
-        adherence_record[drug] = {time: adherences[time] for time in times}
-    return adherence_record
 
 # # %% sample
 # medications = [
