@@ -5,7 +5,7 @@ from google.colab import files
 from base64 import b64encode
 from dotenv import load_dotenv
 
-load_dotenv('../.env')
+load_dotenv()
 # Construct the Vision API service object
 api_key = os.getenv('GCP_API_KEY')
 service = build('vision', 'v1', developerKey=api_key)
