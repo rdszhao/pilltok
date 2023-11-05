@@ -99,6 +99,7 @@ python-apt==0.0.0
 python-louvain==0.16
 requirements-parser==0.5.0
 rpy2==3.4.2
+redis
 secretstorage==3.3.1
 sklearn-pandas==2.2.0
 tables==3.8.0
