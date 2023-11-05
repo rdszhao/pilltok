@@ -231,6 +231,7 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 #     # 'time_period': 'TAKE 4 TIMES A DAY',
 #     'time_period': 'TAKE 4 TIMES A DAY',
 #     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}} ]
+# 
 # routines = {
 #     'wakeup_time': 7 * 60,  # 7:00 am
 #     'bedtime': 24 * 60,     # 10:00 pm
