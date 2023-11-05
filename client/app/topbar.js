@@ -68,9 +68,23 @@ export default function TopBar() {
           <Button
             variant="text"
             color="primary"
+            onClick={() => router.push('/medications')}
+          >
+            Medications
+          </Button>
+          <Button
+            variant="text"
+            color="primary"
             onClick={() => router.push('/upload')}
           >
             Picture
+          </Button>
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => router.push('/routine')}
+          >
+            Routine
           </Button>
           <UserButton />
         </Stack>
