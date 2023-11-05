@@ -55,4 +55,3 @@ for image_file in image_files:
         detect_text(file_path)
     else:
         print(f"Skipping directory: {file_path}")
-
