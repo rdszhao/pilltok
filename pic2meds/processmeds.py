@@ -5,11 +5,8 @@ import sys
 import requests
 from dotenv import load_dotenv
 
-
-
-
 # Function to call the Vision API with an image file
-def detect_text_from_image(image,service):
+def detect_text_from_image(image, service):
     #content = b64encode(image).decode()
     content = image.decode()
     service_request = service.images().annotate(body={
@@ -33,7 +30,7 @@ def detect_text_from_image(image,service):
 
 
 # Function to call the Vision API with an image file
-def detect_text(image_path,service):
+def detect_text(image_path, service):
     with open(image_path, 'rb') as image_file:
         content = b64encode(image_file.read()).decode()
 
@@ -57,8 +54,7 @@ def detect_text(image_path,service):
     return None
 
 
-
-#Extract dosage information from labels
+# Extract dosage information from labels
 def extract_dosage(label_words):
   for i in range(len(label_words)):
     if label_words[i] == 'M':

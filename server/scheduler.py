@@ -17,10 +17,6 @@ except:
 def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
-import re
-from spacy.matcher import Matcher
-import numpy as np
-
 def parse_periods(time_period: str, routines: dict, nlp) -> list:
     doc = nlp(time_period)
     matcher = Matcher(nlp.vocab)
@@ -45,9 +41,7 @@ def parse_periods(time_period: str, routines: dict, nlp) -> list:
     matches = matcher(doc)
     dosage_times = []
 
-    # initialize the start time to be just after wake up time plus a buffer (e.g., 30 minutes)
     start_time = routines['wakeup_time'] + 30
-    # initialize the end time to be just before bedtime minus a buffer (e.g., 30 minutes)
     end_time = routines['bedtime'] - 30
 
     for match_id, start, end in matches:
@@ -85,7 +79,7 @@ def parse_periods(time_period: str, routines: dict, nlp) -> list:
             if hour < 12 and is_pm:
                 hour += 12
             time_in_mins = hour * 60 + minute
-            # only include the time if it's within the wakeup and bedtime bounds
+
             if routines['wakeup_time'] <= time_in_mins < routines['bedtime']:
                 dosage_times.append(time_in_mins)
 
@@ -94,8 +88,7 @@ def parse_periods(time_period: str, routines: dict, nlp) -> list:
 
     return valid_dosage_times
 
-
-def split_medications_and_interactions(medications_list):
+def split_medications_and_interactions(medications_list: list) -> list, dict:
     new_medications = []
     interactions = {}
 
@@ -186,7 +179,8 @@ def create_schedule(medications: list, routines: dict) -> str:
     else:
         print('no solution found for the given constraints.')
 
-def get_interaction_warning(interaction_pair, warnings_dict):
+# !! HELPER !!
+def get_interaction_warning(interaction_pair: dict, warnings_dict: dict) -> str:
     drug1, drug2 = next(iter(interaction_pair.items()))
     return warnings_dict.get(drug1, {}).get(drug2, "no warning found.")
 
