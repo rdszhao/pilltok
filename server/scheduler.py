@@ -83,9 +83,28 @@ def parse_periods(time_period: str, routines: dict, nlp=nlp) -> int:
 
     return dosage_times
 
+def split_medications_and_interactions(medications_list):
+    new_medications = []
+    interactions = {}
+
+    for med in medications_list:
+        # Extract and store the interaction details separately
+        interaction_details = med.pop('interactions', {})
+        interactions[med['name']] = interaction_details
+
+        # Replace the interactions with just the list of medication names
+        med['interactions'] = list(interaction_details.keys())
+
+        # Append the modified medication dictionary to the new list
+        new_medications.append(med)
+
+    return new_medications, interactions
+
 # !! ENDPOINT !!
 def create_schedule(medications: list, routines: dict) -> str:
     model = cp_model.CpModel()
+
+    medications, med_warnings = split_medications_and_interactions(medications)
     medications_dict = {med['name']: med for med in medications}
 
     schedule_vars = {}
@@ -124,7 +143,7 @@ def create_schedule(medications: list, routines: dict) -> str:
                 med1 = var1.Name().split('_dose_')[0]
                 med2 = var2.Name().split('_dose_')[0]
                 warnings.append(f"Warning: {med1} and {med2} have an interaction and are scheduled together.")
-                interaction_warnings.append((med1, med2))
+                interaction_warnings.append({med1: med2})
 
         return_schedule = {}
         for med_name in schedule_vars.keys():
@@ -138,10 +157,19 @@ def create_schedule(medications: list, routines: dict) -> str:
 
         for warning in warnings:
             print(warning)
-            outputs = json.dumps({'schedule': return_schedule, 'warnings': interaction_warnings}, indent=True)
+            outputs = json.dumps({
+                'schedule': return_schedule,
+                'warning_keys': interaction_warnings,
+                'warnings_dict': med_warnings,
+                'medications_dict': medications
+            }, indent=True)
             return outputs
     else:
         print('no solution found for the given constraints.')
+
+def get_interaction_warning(interaction_pair, warnings_dict):
+    drug1, drug2 = next(iter(interaction_pair.items()))
+    return warnings_dict.get(drug1, {}).get(drug2, "No warning found.")
 
 def timesample(time: int, adherence: int, mean: int, std: int) -> int:
     mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
@@ -178,24 +206,17 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
     return json.dumps(new_schedule, indent=True)
 
 # # %% sample
+
 # medications = [
-#     {
-#         'name': 'drug a',
-#         'dosage': '200 mg',
-#         'time_period': 'every 4 hours',
-#         'interactions': ['drug b']
-#     },
-#     {
-#         'name': 'drug b',
-#         'dosage': '100 mg',
-#         'time_period': 'before bed',
-#         'interactions': ['drug c']
-#     },
-#     {
-#         'name': 'drug c',
-#         'dosage': '200 mg',
-#         'time_period': 'once in the morning, once before bed'
-#     }
+#     {'name': 'ATENOLOL',
+#     'dosage': '100 mg',
+#     'time_period': 'TAKE 1 TABLET BY MOUTH BEFORE BEDTIME',
+#     'interactions': {'ALPRAZOLAM': 'Alprazolam may decrease the excretion rate of Amoxicillin which could result in a higher serum level.',
+#                     'AMOXICILLIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}},
+#     {'name': 'AMOXICILLIN',
+#     'dosage': '500 MG',
+#     'time_period': 'TAKE 4 CAPSULE MOUTH 1 HOUR BEFORE BEDTIME',
+#     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}}
 # ]
 
 # routines = {
@@ -208,10 +229,14 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 #     }
 # }
 
+# # i want to take the schedule json string object and write it to a json file
+# schedule = create_schedule(medications, routines)
+# with open('ouput.json', 'w') as file:
+#     file.write(schedule)
+# # %%
+# print(ss)
 # schedule = create_schedule(medications, routines)
 # ss = json.loads(schedule)
-# print(type(schedule))
 # print(ss)
 
-# adherences = {450: 1, 690: 0, 930: 1, 1170: -1, 1290: 0}
-# print(json.loads(reschedule(ss['schedule'], adherences, 20, 15)))
+# get_interaction_warning(ss['warning_keys'][0], ss['warnings_dict'])
