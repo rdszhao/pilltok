@@ -81,35 +81,62 @@ def create_schedule(medications, routines):
     model = cp_model.CpModel()
     medications_dict = {med['name']: med for med in medications}
 
-    schedule = {}
-    for med in medications:
-        dosage_times = parse_periods(med['time_period'], routines)
-        constrained_times = [t for t in dosage_times if routines['wakeup_time'] <= t < routines['bedtime']]
-        for dose, time in enumerate(constrained_times):
-            schedule[(med['name'], dose)] = model.NewIntVar(time, time, f"{med['name']}_dose_{dose}")
+    schedule_vars = {}
+    interaction_vars = {}
 
-    # constraints for interactions between medications
-    for (med1, dose1), (med2, dose2) in itertools.combinations(schedule.keys(), 2):
-        if med2 in medications_dict[med1].get('interactions', []):
-            model.Add(schedule[(med1, dose1)] != schedule[(med2, dose2)])
+    for med in medications:
+        med_name = med['name']
+        dosage_times = parse_periods(med['time_period'], routines, nlp)
+        constrained_times = [t for t in dosage_times if routines['wakeup_time'] <= t < routines['bedtime']]
+        med_vars = []
+        for dose, time in enumerate(constrained_times):
+            var_name = f"{med_name}_dose_{dose}"
+            med_var = model.NewIntVar(time, time, var_name)
+            med_vars.append(med_var)
+        schedule_vars[med_name] = med_vars
+
+    # interaction constraints
+    for (med1, doses1), (med2, doses2) in itertools.combinations(schedule_vars.items(), 2):
+        interactions = medications_dict[med1].get('interactions', []) + medications_dict[med2].get('interactions', [])
+        if med2 in interactions or med1 in interactions:
+            for var1, var2 in itertools.product(doses1, doses2):
+                # boolean variable that is true if two drugs with an interaction are scheduled at the same time
+                interaction_var = model.NewBoolVar(f'{var1.Name()}_{var2.Name()}_interaction')
+                model.Add(var1 == var2).OnlyEnforceIf(interaction_var)
+                model.Add(var1 != var2).OnlyEnforceIf(interaction_var.Not())
+                interaction_vars[(var1, var2)] = interaction_var
 
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
 
-    if status == cp_model.OPTIMAL:
+    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        warnings = []
+        interaction_warnings = []
+        for (var1, var2), interaction_var in interaction_vars.items():
+            if solver.Value(interaction_var):
+                med1 = var1.Name().split('_dose_')[0]
+                med2 = var2.Name().split('_dose_')[0]
+                warnings.append(f"Warning: {med1} and {med2} have an interaction and are scheduled together.")
+                interaction_warnings.append((med1, med2))
+
         return_schedule = {}
-        for med, _ in schedule.keys():
-            return_schedule[med] = []
-        for (med, dose), var in schedule.items():
-            med_time = solver.Value(var)
-            time_string = f"{med_time // 60:02d}:{med_time % 60:02d}"
-            print(f"{med} dose {dose + 1} should be taken at {time_string}")
-            return_schedule[med].append(time_string)
-        return return_schedule
+        for med_name in schedule_vars.keys():
+            return_schedule[med_name] = []
+        for med_name, med_vars in schedule_vars.items():
+            for dose_num, var in enumerate(med_vars):
+                med_time = solver.Value(var)
+                time_string = f"{med_time // 60:02d}:{med_time % 60:02d}"
+                print(f"{med_name} dose {dose_num + 1} should be taken at {time_string}")
+                return_schedule[med_name].append(time_string)
+
+        for warning in warnings:
+            print(warning)
+        return return_schedule, interaction_warnings
     else:
-        print('no solution found for the given constraints.')
+        print('No solution found for the given constraints.')
 
 # sample
+
 # medications = [
 #     {
 #         'name': 'drug a',
@@ -120,7 +147,8 @@ def create_schedule(medications, routines):
 #     {
 #         'name': 'drug b',
 #         'dosage': '100 mg',
-#         'time_period': 'before bed'
+#         'time_period': 'before bed',
+#         'interactions': ['drug c']
 #     },
 #     {
 #         'name': 'drug c',
@@ -139,4 +167,4 @@ def create_schedule(medications, routines):
 #     }
 # }
 
-# schedule = create_schedule(medications, routines)
+# schedule, warnings = create_schedule(medications, routines)
