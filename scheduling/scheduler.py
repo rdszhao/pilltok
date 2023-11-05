@@ -12,10 +12,10 @@ except:
     download('en_core_web_sm')
     nlp = spacy.load('en_core_web_sm')
 
-def timestr(time):
+def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
-def parse_periods(time_period, routines, nlp=nlp):
+def parse_periods(time_period: str, routines: dict, nlp=nlp) -> int:
     doc = nlp(time_period)
     matcher = Matcher(nlp.vocab)
 
@@ -81,7 +81,7 @@ def parse_periods(time_period, routines, nlp=nlp):
 
     return dosage_times
 
-def initializa(medications, routines):
+def create_schedule(medications: list, routines: dict) -> tuple:
     model = cp_model.CpModel()
     medications_dict = {med['name']: med for med in medications}
 
@@ -139,14 +139,14 @@ def initializa(medications, routines):
     else:
         print('no solution found for the given constraints.')
 
-def flatten_records(adherence_record):
+def flatten_records(adherence_record: dict) -> list:
     flat_record = {}
     for _, times in adherence_record.items():
         for time, adherence in times.items():
             flat_record[time] = adherence
     return flat_record
 
-def timegen(time, adherence, mean, std):
+def timegen(time: int, adherence: int, mean: int, std: int) -> int:
     mean_shift = -1 * mean if adherence == -1 else mean if adherence == 1 else 0
     std_dev = std if (adherence == -1 or adherence == 1) else 0
     new_time = int(np.random.normal(time + mean_shift, std_dev))
@@ -154,12 +154,12 @@ def timegen(time, adherence, mean, std):
     new_time = max(0, min(new_time, 1440 - 15))
     return new_time
 
-def reschedule(adherence_record):
+def reschedule(adherence_record: dict, mean=15, std=15) -> dict:
     flattened_records = flatten_records(adherence_record)
 
     adjusted_times = {}
     for time, adherence in flattened_records.items():
-        new_time = timegen(time, adherence, 15, 15)
+        new_time = timegen(time, adherence, mean, std)
         adjusted_times[time] = new_time
 
     new_schedule = {}
@@ -167,7 +167,6 @@ def reschedule(adherence_record):
         new_schedule[drug] = [adjusted_times[time] for time in times]
 
     return new_schedule
-
 # # %% sample
 # medications = [
 #     {
@@ -200,6 +199,7 @@ def reschedule(adherence_record):
 # }
 
 # schedule, warnings = create_schedule(medications, routines)
+# print(schedule, warnings)
 
 # adherence_record = {
 #     'drug a': {450: 1, 690: 0, 930: 1, 1170: -1},
@@ -207,4 +207,4 @@ def reschedule(adherence_record):
 #     'drug c': {450: 1, 1290: 0}
 # }
 
-# reschedule(adherence_record)
+# reschedule(adherence_record, 20, 15)
