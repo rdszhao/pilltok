@@ -1,3 +1,4 @@
+# %%
 import re
 import json
 import numpy as np
@@ -14,6 +15,7 @@ except:
     nlp = spacy.load('en_core_web_sm')
 
 
+# %%
 def timestr(time: int) -> str:
     return f"{time // 60:02d}:{time % 60:02d}"
 
@@ -166,7 +168,7 @@ def create_schedule(medications: list, routines: dict) -> str:
             'schedule': return_schedule,
             'warning_keys': warning_keys,
             'warnings_dict': med_warnings,
-            'medications_dict': medications
+            'medications': medications
         }, indent=True)
         return outputs
         outputs = json.dumps({
@@ -223,7 +225,7 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 # medications = [
 #     {'name': 'ATENOLOL',
 #     'dosage': '100 mg',
-#     'time_period': 'TAKE 3 TIMES A DAY',
+#     'time_period': 'TAKE 1 TABLET BY MOUTH BEFORE BEDTIME',
 #     'interactions': {'ALPRAZOLAM': 'Alprazolam may decrease the excretion rate of Amoxicillin which could result in a higher serum level.',
 #                     'AMOXICILLIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}},
 #     {'name': 'AMOXICILLIN',
@@ -231,7 +233,7 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 #     # 'time_period': 'TAKE 4 TIMES A DAY',
 #     'time_period': 'TAKE 4 TIMES A DAY',
 #     'interactions': {'WARFARIN': 'Amoxicillin may decrease the excretion rate of Warfarin which could result in a higher serum level.'}} ]
-# 
+
 # routines = {
 #     'wakeup_time': 7 * 60,  # 7:00 am
 #     'bedtime': 24 * 60,     # 10:00 pm
@@ -246,10 +248,5 @@ def reschedule(schedule: dict, adherences: dict, mean=15, std=15) -> str:
 # schedule = create_schedule(medications, routines)
 # with open('ouput.json', 'w') as file:
 #     file.write(schedule)
-# # %%
-# print(ss)
-# schedule = create_schedule(medications, routines)
-# ss = json.loads(schedule)
-# print(ss)
 
-# get_interaction_warning(ss['warning_keys'][0], ss['warnings_dict'])
+# print(schedule)

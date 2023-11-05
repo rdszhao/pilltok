@@ -1,41 +1,59 @@
 import os
 import json
 import random
-from  dotenv import load_dotenv
+import redis
 
-load_dotenv('../.env')
 
 r = redis.Redis(
-	host=os.getenv['REDIS_HOST'],
-	port=os.getenv['REDIS_PORT'],
-	password=os.getenv['REDIS_PASSWORD']
+	host=os.environ.get('REDIS_HOST'),
+	port=os.environ.get('REDIS_PORT'),
+	password=os.environ.get('REDIS_PASSWORD')
 )
 
-def send_to_redis(schedule: str, routine: str, adherence: str, user_id: int) -> bool:
+# def send_to_redis(schedule: str, routine: str, adherence: str, user_id: int) -> bool:
+# 	try:
+# 		r.set(user_id + ':schedule', schedule)
+# 		r.set(user_id + ':routine', routine)
+# 		r.set(user_id + ':medications', medications)
+# 		return True
+# 	except Exception as e:
+# 		print(e)
+# 		return False
+
+def set_schedule(schedule: str, user_id: int) -> bool:
 	try:
 		r.set(user_id + ':schedule', schedule)
+		return True
+	except Exception as e:
+		print(e)
+		return False
+
+def set_routine(routine: str, user_id: int) -> bool:
+	try:
 		r.set(user_id + ':routine', routine)
+		return True
+	except Exception as e:
+		print(e)
+		return False
+
+def set_medications(medications: str, user_id: int) -> bool:
+	try:
 		r.set(user_id + ':medications', medications)
 		return True
 	except Exception as e:
 		print(e)
 		return False
-	# r.set(user_id + ':schedule', json.dumps(schedule))
-	# r.set(user_id + ':routine', json.dumps(routine))
-	# r.set(user_id + ':adherence', json.dumps(adherence))
 
-def get_from_redis(user_id: int) -> str:
-	schedule = r.get(user_id + ':schedule')
-	routine = r.get(user_id + ':routine')
-	medications = r.get(user_id + ':medications')
-	return_json = {
-		'schedule': schedule,
-		'routine': routine,
-		'medications': medications
-	}
-	return_json = json.dumps(return_json)
-	return return_json
-	# schedule = json.loads(r.get(user_id + ':schedule'))
-	# routine = json.loads(r.get(user_id + ':routine'))
-	# adherence = json.loads(r.get(user_id + ':adherence'))
-	# return schedule, routine, adherence
+def get_from_redis(user_id: int) -> dict:
+    return_dict = {}
+
+    schedule = r.get(f"{user_id}:schedule")
+    return_dict['schedule'] = json.loads(schedule) if schedule is not None else {}
+
+    routine = r.get(f"{user_id}:routine")
+    return_dict['routine'] = json.loads(routine) if routine is not None else {}
+
+    medications = r.get(f"{user_id}:medications")
+    return_dict['medications'] = json.loads(medications) if medications is not None else []
+
+    return return_dict

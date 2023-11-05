@@ -1,15 +1,18 @@
-from fastapi import FastAPI, HTTPException
 from os import environ
+import json
+from dotenv import load_dotenv
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from dotenv import load_dotenv
+load_dotenv()
 from processmeds import picture_to_image
-from scheduler import create_schedule
+from scheduler import create_schedule, reschedule
+from db import get_from_redis, set_schedule, set_routine, set_medications
 
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict
 
-load_dotenv()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -20,59 +23,116 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class Meals(BaseModel):
+    breakfast: int
+    lunch: int
+    dinner: int
+
 class Routines(BaseModel):
-    pass
+    user_id: str
+    wakeup_time: int
+    bedtime: int
+    meals: Meals
 
-class Preferences(BaseModel):
-    pass
+class Medication(BaseModel):
+    name: str
+    dosage: str
+    time_period: str
+    interactions: Dict[str, str]
 
-class Medicines(BaseModel):
-    pass
+class Medications(BaseModel):
+    user_id: str
+    data: List[Medication]
 
-class Schedule(BaseModel):
-    pass
+class FullSchedule(BaseModel):
+    schedule: Dict[str, List[int]]
+    warning_keys: List[Dict]
+    warning_dict: Dict[str, Dict[str, str]]
+
+class Feedback(BaseModel):
+    user_id: str
+    adherence: Dict[int, int]
 
 class ImageList(BaseModel):
     images: List[str]
     userID: str
-    routines: Routines
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/preferences/{user_id}")
-async def get_preferences(user_id: str):
-    preferences = Preferences()
-    # TODO: Implement logic to retrieve preferences for the given user_id
-    return preferences
+@app.get("/routine/{user_id}")
+async def get_routine(user_id: str):
+    results = get_from_redis(user_id)
+    return results['routine']
 
-@app.get("/medicines/{user_id}")
-async def get_medicines(user_id: str):
-    medicines = Medicines()
-    # TODO: Implement logic to retrieve medicines for the given user_id
-    return medicines
+@app.get("/medications/{user_id}")
+async def get_medications(user_id: str):
+    results = get_from_redis(user_id)
+    return results['medications']
 
 @app.get("/schedule/{user_id}")
 async def get_schedule(user_id: str):
-    schedule = Schedule()
-    # TODO: Implement logic to retrieve schedule for the given user_id
-    return schedule
-
-class Feedback(BaseModel):
-    pass
+    results = get_from_redis(user_id)
+    return results['schedule']
 
 @app.post("/meds")
 async def meds(image_list: ImageList):
-    image_list = image_list.images
-    all_stuffs = picture_to_image(image_list)
-    processed_stuffs = create_schedule(all_stuffs, image_list.routines)
-    print(processed_stuffs)
+    image_list = image_list
+    image = image_list.images
+    # step 1: get user_id
+    user_id = image_list.userID
+    results = get_from_redis(user_id)
+    previous_medication = results['medications']
+    print(previous_medication)
 
-@app.post("/feedback")
-async def feedback(feedback: Feedback):
-    pass
+    # step 2: get new meds
+    new_meds = picture_to_image(image)
+    
+    # step 3: combine new meds with previous meds
+    all_medications = previous_medication + new_meds
+    
+    # step 4: get routines and create schedule
+    routines = results['routine']
+    new_schedule = create_schedule(all_medications, routines)
+    print(new_schedule)
+    # step 5: set schedule in redis 
+    set_schedule(new_schedule, user_id)
+    
+    # step 6: set new meds in redis
+    all_medications = json.dumps(all_medications)
+    set_medications(all_medications, user_id)
+    
+    # step 7: return ok
+    return Response(content=None, status_code=status.HTTP_200_OK)
+
+@app.post("/reschedule")
+async def reschedule(feedback: Feedback):
+    user_id = feedback.user_id
+    adherence = feedback.adherence
+    # get schedule from redis
+    results = get_from_redis(user_id)
+    schedule = results['schedule']
+    reschedule_schedule = reschedule(schedule, adherence)
+    reschedule_schedule = json.dumps(reschedule_schedule)
+    set_schedule(reschedule_schedule, user_id)
+    return Response(content=None, status_code=status.HTTP_200_OK)
 
 @app.post("/routines")
 async def routines(routines: Routines):
-    pass
+    user_id = routines.user_id
+    routine = {
+        'wakeup_time': routines.wakeup_time,
+        'bedtime': routines.bedtime,
+        'meals': routines.meals.dict()
+    }
+    routine = json.dumps(routine)
+    set_routine(routine, user_id)
+    return Response(content=None, status_code=status.HTTP_200_OK)
+
+@app.post("/medications")
+async def medications(medications: Medications):
+    user_id = medications.user_id
+    medications = json.dumps(medications.data)
+    set_medications(medications, user_id)
+    return Response(content=None, status_code=status.HTTP_200_OK)
