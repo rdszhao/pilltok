@@ -176,40 +176,40 @@ def create_adherence_record(schedule: dict, adherences: dict) -> dict:
         adherence_record[drug] = {time: adherences[time] for time in times}
     return adherence_record
 
-# %% sample
-medications = [
-    {
-        'name': 'drug a',
-        'dosage': '200 mg',
-        'time_period': 'every 4 hours',
-        'interactions': ['drug b']
-    },
-    {
-        'name': 'drug b',
-        'dosage': '100 mg',
-        'time_period': 'before bed',
-        'interactions': ['drug c']
-    },
-    {
-        'name': 'drug c',
-        'dosage': '200 mg',
-        'time_period': 'once in the morning, once before bed'
-    }
-]
+# # %% sample
+# medications = [
+#     {
+#         'name': 'drug a',
+#         'dosage': '200 mg',
+#         'time_period': 'every 4 hours',
+#         'interactions': ['drug b']
+#     },
+#     {
+#         'name': 'drug b',
+#         'dosage': '100 mg',
+#         'time_period': 'before bed',
+#         'interactions': ['drug c']
+#     },
+#     {
+#         'name': 'drug c',
+#         'dosage': '200 mg',
+#         'time_period': 'once in the morning, once before bed'
+#     }
+# ]
 
-routines = {
-    'wakeup_time': 7 * 60,  # 7:00 am
-    'bedtime': 22 * 60,     # 10:00 pm
-    'meals': {
-        'breakfast': 8 * 60,
-        'lunch': 12 * 60,
-        'dinner': 18 * 60
-    }
-}
+# routines = {
+#     'wakeup_time': 7 * 60,  # 7:00 am
+#     'bedtime': 22 * 60,     # 10:00 pm
+#     'meals': {
+#         'breakfast': 8 * 60,
+#         'lunch': 12 * 60,
+#         'dinner': 18 * 60
+#     }
+# }
 
-schedule = create_schedule(medications, routines)
-ss = json.loads(schedule)
-print(ss)
+# schedule = create_schedule(medications, routines)
+# ss = json.loads(schedule)
+# print(ss)
 
-adherences = {450: 1, 690: 0, 930: 1, 1170: -1, 1290: 0}
-print(json.loads(reschedule(ss['schedule'], adherences, 20, 15)))
+# adherences = {450: 1, 690: 0, 930: 1, 1170: -1, 1290: 0}
+# print(json.loads(reschedule(ss['schedule'], adherences, 20, 15)))
